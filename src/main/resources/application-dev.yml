@@ -1,0 +1,76 @@
+spring:
+  # 动态数据源配置（替代原生 spring.datasource）
+  # 默认数据源 master，可扩展 slave_1 / slave_2 等
+  datasource:
+    dynamic:
+      primary: master
+      strict: true
+      datasource:
+        master:
+          url: jdbc:mysql://192.168.1.57:3306/knowledge_base?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
+          username: root
+          password: Mol_Qiprh0_s
+          driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # MongoDB 配置
+  data:
+    mongodb:
+      uri: mongodb://writer:Fenmi1q2w3e@192.168.1.77:27017/ryxdb
+      auto-index-creation: true
+
+    # Redis 配置
+    redis:
+      host: 192.168.1.77
+      port: 6379
+      password: chefu666
+      database: 0
+      timeout: 30s
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+  # Spring AI - 多 Provider 配置
+  # 切换 Provider：修改 application.yml 中 knowledge.llm.provider 即可
+  # - openai: 使用下方 openai 配置
+  # - deepseek: 使用下方 openai 配置（兼容接口），改 base-url 为 DeepSeek 即可
+  # - zhipuai: 使用下方 zhipuai 配置
+  # - ollama: 使用下方 ollama 配置
+  ai:
+    openai:
+      # OpenAI 原生
+      api-key: ${OPENAI_API_KEY:sk-your-openai-key}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      # DeepSeek（将 knowledge.llm.provider 改为 deepseek，并设置下方环境变量）
+      # api-key: ${DEEPSEEK_API_KEY:sk-your-deepseek-key}
+      # base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+      chat:
+        options:
+          model: ${CHAT_MODEL:gpt-3.5-turbo}
+          temperature: 0.7
+          max-tokens: 2048
+      embedding:
+        options:
+          model: ${EMBEDDING_MODEL:text-embedding-ada-002}
+
+    # 智谱 GLM（备用，启用时需在 ChatService/EmbeddingService 改 @Qualifier）
+    zhipuai:
+      api-key: ${ZHIPUAI_API_KEY:sk-your-zhipuai-key}
+      chat:
+        options:
+          model: glm-4
+          temperature: 0.7
+      embedding:
+        options:
+          model: embedding-3
+
+    # Ollama 本地模型（备用）
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      chat:
+        options:
+          model: llama3
+          temperature: 0.7
+      embedding:
+        options:
+          model: nomic-embed-text

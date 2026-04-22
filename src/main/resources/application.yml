@@ -1,0 +1,67 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: local-knowledge
+  profiles:
+    active: dev
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 200MB
+
+  # Jackson 配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    default-property-inclusion: non_null
+
+# MyBatis Plus 配置
+mybatis-plus:
+  mapper-locations: classpath:mapper/**/*.xml
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 知识库系统配置
+knowledge:
+  # 向量存储类型：mongodb（第一阶段）/ milvus / chroma（后续）
+  vector-store:
+    type: mongodb
+  # 检索配置
+  retrieval:
+    # Fallback 阈值：当最高匹配分数低于此值时，转交大模型处理
+    fallback-threshold: 0.6
+    # 返回 Top-K 结果数
+    top-k: 5
+    # 关键词检索权重
+    keyword-weight: 0.3
+    # 语义检索权重
+    semantic-weight: 0.7
+  # 分块配置
+  chunk:
+    # 分块大小（字符数）
+    size: 500
+    # 分块重叠（字符数）
+    overlap: 50
+  # 当前 LLM Provider（openai / zhipuai / ollama / deepseek）
+  # deepseek 走 OpenAI 兼容接口，配置在 application-dev.yml 的 spring.ai.openai 下
+  llm:
+    provider: zhipuai
+  # 当前 Embedding Provider（openai / zhipuai / ollama）
+  embedding:
+    provider: zhipuai
+
+logging:
+  level:
+    com.knowledge: debug
+    org.springframework.ai: debug

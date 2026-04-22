@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KnowledgeBase - 智能知识库</title>
+    <link rel="stylesheet" href="https://unpkg.com/tdesign-vue-next/dist/tdesign.min.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/tdesign-vue-next/dist/tdesign.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --bg-primary: #0B1120;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --bg-glass: rgba(30, 41, 59, 0.5);
+            --bg-input: rgba(15, 23, 42, 0.8);
+            --border-glass: rgba(148, 163, 184, 0.1);
+            --border-active: rgba(59, 130, 246, 0.5);
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --accent-blue: #3B82F6;
+            --accent-blue-hover: #2563EB;
+            --accent-cyan: #06B6D4;
+            --accent-purple: #8B5CF6;
+            --accent-green: #22C55E;
+            --accent-red: #EF4444;
+            --accent-amber: #F59E0B;
+            --glow-blue: 0 0 20px rgba(59, 130, 246, 0.3);
+            --glow-cyan: 0 0 20px rgba(6, 182, 212, 0.3);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body, #app {
+            height: 100%;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+
+        /* 全局滚动条 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.35); }
+
+        /* ===== 布局 ===== */
+        .app-layout { display: flex; height: 100%; position: relative; }
+
+        /* 背景光效 */
+        .bg-glow {
+            position: fixed; pointer-events: none; z-index: 0;
+        }
+        .bg-glow-1 {
+            top: -20%; left: -10%; width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
+        }
+        .bg-glow-2 {
+            bottom: -20%; right: -10%; width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, transparent 70%);
+        }
+        .bg-glow-3 {
+            top: 40%; left: 50%; width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(6, 182, 212, 0.05) 0%, transparent 70%);
+            transform: translateX(-50%);
+        }
+
+        /* ===== 侧边栏 ===== */
+        .sidebar {
+            width: 260px; background: var(--bg-secondary);
+            border-right: 1px solid var(--border-glass);
+            display: flex; flex-direction: column; flex-shrink: 0;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10; position: relative;
+        }
+        .sidebar.collapsed { width: 72px; }
+
+        .sidebar-header {
+            height: 72px; display: flex; align-items: center;
+            padding: 0 20px; gap: 12px;
+            border-bottom: 1px solid var(--border-glass);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05));
+        }
+        .sidebar-logo {
+            width: 36px; height: 36px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+            box-shadow: var(--glow-blue);
+        }
+        .sidebar-brand { white-space: nowrap; overflow: hidden; }
+        .sidebar-brand h2 {
+            font-size: 16px; font-weight: 600; color: var(--text-primary);
+            background: linear-gradient(135deg, #93C5FD, #C4B5FD);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .sidebar-brand p { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+        .sidebar.collapsed .sidebar-brand { display: none; }
+
+        .sidebar-menu { flex: 1; padding: 12px 8px; overflow-y: auto; }
+        .menu-item {
+            display: flex; align-items: center; padding: 11px 16px;
+            border-radius: var(--radius-sm); cursor: pointer;
+            color: var(--text-secondary); transition: all 0.2s;
+            white-space: nowrap; gap: 12px; margin-bottom: 2px;
+            font-size: 14px; font-weight: 400;
+        }
+        .menu-item:hover {
+            color: var(--text-primary);
+            background: rgba(148, 163, 184, 0.08);
+        }
+        .menu-item.active {
+            color: #fff;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15));
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            font-weight: 500;
+        }
+        .menu-item .icon { width: 20px; text-align: center; font-size: 16px; flex-shrink: 0; }
+        .sidebar.collapsed .menu-item { padding: 11px; justify-content: center; }
+        .sidebar.collapsed .menu-item .label { display: none; }
+
+        .sidebar-footer {
+            padding: 12px 8px; border-top: 1px solid var(--border-glass);
+        }
+
+        /* ===== 主内容区 ===== */
+        .main-content {
+            flex: 1; display: flex; flex-direction: column; overflow: hidden;
+            position: relative; z-index: 5;
+        }
+        .main-header {
+            height: 56px; display: flex; align-items: center;
+            padding: 0 24px; justify-content: space-between;
+            border-bottom: 1px solid var(--border-glass);
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        }
+        .main-header h3 {
+            font-size: 15px; font-weight: 500; color: var(--text-primary);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .main-header h3 .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+        }
+        .main-body { flex: 1; overflow-y: auto; padding: 24px; }
+
+        /* ===== 知识库管理 ===== */
+        .page-title-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 24px;
+        }
+        .page-title {
+            font-size: 22px; font-weight: 600;
+            background: linear-gradient(135deg, #F1F5F9, #94A3B8);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .kb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+        .kb-card {
+            background: var(--bg-card); border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md); padding: 20px;
+            cursor: pointer; transition: all 0.3s;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            position: relative; overflow: hidden;
+        }
+        .kb-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .kb-card:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), var(--glow-blue);
+            transform: translateY(-2px);
+        }
+        .kb-card:hover::before { opacity: 1; }
+        .kb-card .name {
+            font-size: 15px; font-weight: 600; color: var(--text-primary);
+            margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+        }
+        .kb-card .name .kb-icon {
+            width: 28px; height: 28px; border-radius: 6px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; flex-shrink: 0;
+        }
+        .kb-card .desc {
+            font-size: 13px; color: var(--text-muted);
+            margin-bottom: 14px; min-height: 20px; line-height: 1.5;
+        }
+        .kb-card .stats {
+            display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary);
+        }
+        .kb-card .stats span {
+            display: flex; align-items: center; gap: 4px;
+            padding: 3px 8px; border-radius: 4px;
+            background: rgba(148, 163, 184, 0.06);
+        }
+        .kb-card .card-actions {
+            margin-top: 14px; padding-top: 14px;
+            border-top: 1px solid var(--border-glass);
+            display: flex; gap: 6px;
+        }
+
+        /* ===== 对话页面 ===== */
+        .chat-layout {
+            display: flex; flex-direction: column; height: calc(100vh - 56px);
+        }
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 24px 32px;
+        }
+        .chat-msg { display: flex; margin-bottom: 20px; gap: 12px; }
+        .chat-msg.user { flex-direction: row-reverse; }
+
+        .chat-avatar {
+            width: 32px; height: 32px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; flex-shrink: 0;
+        }
+        .chat-msg.assistant .chat-avatar {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+            border: 1px solid rgba(59, 130, 246, 0.15);
+        }
+        .chat-msg.user .chat-avatar {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(6, 182, 212, 0.2));
+            border: 1px solid rgba(34, 197, 94, 0.15);
+        }
+
+        .chat-bubble {
+            max-width: 70%; padding: 12px 16px; border-radius: var(--radius-md);
+            font-size: 14px; line-height: 1.7;
+        }
+        .chat-msg.assistant .chat-bubble {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            color: var(--text-primary);
+        }
+        .chat-msg.user .chat-bubble {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.2));
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #E0E7FF;
+        }
+        .chat-bubble .source-tag {
+            font-size: 11px; color: var(--text-muted); margin-top: 8px;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .source-badge {
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500;
+        }
+        .source-badge.knowledge {
+            background: rgba(59, 130, 246, 0.15); color: #93C5FD;
+        }
+        .source-badge.ai {
+            background: rgba(34, 197, 94, 0.15); color: #86EFAC;
+        }
+        .references {
+            margin-top: 10px; padding: 10px;
+            background: rgba(148, 163, 184, 0.05);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-glass);
+        }
+        .ref-item { color: var(--text-muted); font-size: 12px; margin-bottom: 3px; line-height: 1.5; }
+
+        /* 输入区 */
+        .chat-input-area {
+            padding: 16px 32px 20px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-glass);
+        }
+        .chat-input-row {
+            display: flex; align-items: flex-end; gap: 12px;
+        }
+        .chat-select-wrap {
+            flex-shrink: 0;
+        }
+        .chat-textarea-wrap {
+            flex: 1; position: relative;
+        }
+        .chat-textarea-wrap textarea {
+            width: 100%; resize: none;
+            background: var(--bg-input);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 10px 16px; font-size: 14px; line-height: 1.6;
+            color: var(--text-primary); outline: none;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .chat-textarea-wrap textarea::placeholder { color: var(--text-muted); }
+        .chat-textarea-wrap textarea:focus {
+            border-color: var(--border-active);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .send-btn {
+            width: 44px; height: 44px; border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none; color: #fff; font-size: 18px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; flex-shrink: 0;
+        }
+        .send-btn:hover:not(:disabled) {
+            box-shadow: var(--glow-blue);
+            transform: scale(1.05);
+        }
+        .send-btn:disabled {
+            opacity: 0.4; cursor: not-allowed;
+        }
+
+        .chat-hint {
+            font-size: 11px; color: var(--text-muted);
+            margin-top: 8px; text-align: center;
+        }
+
+        /* 空状态 */
+        .empty-chat {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; height: 100%; gap: 16px;
+        }
+        .empty-chat-icon {
+            width: 80px; height: 80px; border-radius: 20px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 36px;
+            border: 1px solid rgba(59, 130, 246, 0.1);
+        }
+        .empty-chat h3 { font-size: 18px; font-weight: 500; color: var(--text-secondary); }
+        .empty-chat p { font-size: 13px; color: var(--text-muted); max-width: 360px; text-align: center; line-height: 1.6; }
+
+        .quick-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+        .quick-action {
+            padding: 6px 14px; border-radius: 20px; font-size: 13px;
+            background: rgba(148, 163, 184, 0.06);
+            border: 1px solid var(--border-glass);
+            color: var(--text-secondary); cursor: pointer;
+            transition: all 0.2s;
+        }
+        .quick-action:hover {
+            border-color: rgba(59, 130, 246, 0.3);
+            color: var(--text-primary);
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        /* ===== 配置页 ===== */
+        .config-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+            gap: 20px;
+        }
+        .config-card {
+            background: var(--bg-card); border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md); padding: 24px;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        .config-card-title {
+            font-size: 15px; font-weight: 600; color: var(--text-primary);
+            margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+        }
+        .config-card-title .cfg-icon {
+            width: 28px; height: 28px; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px;
+        }
+        .form-item { margin-bottom: 18px; }
+        .form-item label {
+            display: block; font-size: 13px; color: var(--text-secondary);
+            margin-bottom: 6px; font-weight: 500;
+        }
+        .form-item .hint {
+            font-size: 11px; color: var(--text-muted); margin-top: 4px;
+        }
+
+        /* ===== 知识条目详情 ===== */
+        .detail-panel {
+            background: var(--bg-card); border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md); padding: 20px; margin-top: 20px;
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        }
+        .detail-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px;
+        }
+        .detail-header h4 {
+            font-size: 16px; font-weight: 600; color: var(--text-primary);
+        }
+
+        /* ===== 导入进度 ===== */
+        .import-progress { padding: 16px 0; }
+        .progress-info {
+            display: flex; justify-content: space-between;
+            margin-bottom: 8px; font-size: 13px;
+        }
+        .progress-info .stage { color: var(--accent-cyan); }
+        .progress-info .pct { color: var(--text-secondary); }
+
+        /* ===== 上传区 ===== */
+        .upload-area {
+            border: 2px dashed rgba(148, 163, 184, 0.15);
+            border-radius: var(--radius-md); padding: 40px 20px;
+            text-align: center; cursor: pointer; transition: all 0.3s;
+            background: rgba(148, 163, 184, 0.02);
+        }
+        .upload-area:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            background: rgba(59, 130, 246, 0.03);
+        }
+        .upload-area .upload-icon {
+            font-size: 40px; margin-bottom: 12px;
+            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
+        }
+        .upload-area .text { color: var(--text-secondary); font-size: 14px; }
+        .upload-area .hint { color: var(--text-muted); font-size: 12px; margin-top: 6px; }
+
+        .file-selected {
+            padding: 14px; background: rgba(59, 130, 246, 0.06);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            border-radius: var(--radius-sm); margin-bottom: 16px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .file-selected span { font-size: 14px; color: var(--text-primary); }
+
+        /* ===== 空状态 ===== */
+        .empty-state {
+            text-align: center; padding: 60px 20px; color: var(--text-muted);
+        }
+        .empty-state .empty-icon {
+            width: 64px; height: 64px; border-radius: 16px;
+            background: rgba(148, 163, 184, 0.05);
+            border: 1px solid var(--border-glass);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 28px; margin-bottom: 16px;
+        }
+        .empty-state p { font-size: 14px; }
+
+        /* ===== 思考动画 ===== */
+        .thinking-dots span {
+            display: inline-block; width: 6px; height: 6px;
+            border-radius: 50%; background: var(--accent-blue);
+            margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* ===== TDesign 暗色覆盖 ===== */
+        /* 输入框外层 */
+        .t-input, .t-textarea, .t-select .t-input,
+        .t-input-number, .t-input-number .t-input {
+            background: var(--bg-input) !important;
+            border-color: var(--border-glass) !important;
+        }
+        /* 输入框内层 —— 这是真正渲染 <input> 的元素，文字颜色在这里设置 */
+        .t-input__inner,
+        .t-textarea__inner,
+        .t-select .t-input__inner,
+        .t-input-number .t-input__inner,
+        .t-input .t-input__inner,
+        input.t-input__inner,
+        textarea.t-textarea__inner {
+            color: #ffffff !important;
+            background: transparent !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+        /* 聚焦态 */
+        .t-input:focus, .t-textarea__inner:focus,
+        .t-input.t-is-focused, .t-textarea__inner.t-is-focused,
+        .t-input.t-is-focused .t-input__inner,
+        .t-textarea.t-is-focused .t-textarea__inner {
+            border-color: var(--border-active) !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+        }
+        /* Placeholder */
+        .t-input__inner::placeholder,
+        .t-textarea__inner::placeholder,
+        .t-input::placeholder,
+        .t-textarea__inner::placeholder,
+        .t-select .t-input__inner::placeholder {
+            color: var(--text-muted) !important;
+            -webkit-text-fill-color: var(--text-muted) !important;
+        }
+        .t-select .t-fake-arrow { color: var(--text-muted) !important; }
+
+        /* TDesign Popup/Dialog 暗色 */
+        .t-popup__content { background: var(--bg-secondary) !important; border: 1px solid var(--border-glass) !important; }
+        .t-select__list li { color: var(--text-primary) !important; }
+        .t-select__list li:hover { background: rgba(59, 130, 246, 0.1) !important; }
+        .t-select__list li.t-is-selected { background: rgba(59, 130, 246, 0.15) !important; color: #93C5FD !important; }
+
+        .t-dialog { background: var(--bg-secondary) !important; border: 1px solid var(--border-glass) !important; }
+        .t-dialog__header { color: var(--text-primary) !important; border-bottom: 1px solid var(--border-glass) !important; }
+        .t-dialog__footer { border-top: 1px solid var(--border-glass) !important; }
+        .t-form__label { color: var(--text-secondary) !important; }
+
+        /* TDesign 通用文字颜色兜底 */
+        .t-dialog .t-input__inner,
+        .t-dialog .t-textarea__inner,
+        .t-dialog .t-select .t-input__inner {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+
+        .t-table { background: transparent !important; }
+        .t-table th { background: rgba(148, 163, 184, 0.05) !important; color: var(--text-secondary) !important; border-color: var(--border-glass) !important; }
+        .t-table td { color: var(--text-primary) !important; border-color: var(--border-glass) !important; }
+        .t-table tr:hover td { background: rgba(59, 130, 246, 0.05) !important; }
+
+        .t-slider__bar { background: rgba(148, 163, 184, 0.1) !important; }
+        .t-slider__active-bar { background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)) !important; }
+
+        .t-progress__bar { background: rgba(148, 163, 184, 0.1) !important; }
+        .t-progress__inner-bar { background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)) !important; }
+
+        .t-input-number .t-input { background: var(--bg-input) !important; border-color: var(--border-glass) !important; }
+        .t-input-number .t-input__inner { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+        .t-input-number .t-button { background: rgba(148, 163, 184, 0.05) !important; border-color: var(--border-glass) !important; color: var(--text-secondary) !important; }
+        .t-input-number .t-button:hover { color: var(--text-primary) !important; }
+
+        /* 按钮暗色 */
+        .t-button.t-is-disabled { opacity: 0.4; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <!-- 背景光效 -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    <div class="bg-glow bg-glow-3"></div>
+
+    <div class="app-layout">
+        <!-- 侧边栏 -->
+        <div class="sidebar" :class="{ collapsed: sidebarCollapsed }">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">🧠</div>
+                <div class="sidebar-brand">
+                    <h2>KnowledgeBase</h2>
+                    <p>智能知识库平台</p>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                <div class="menu-item" :class="{ active: currentPage === 'knowledge' }" @click="currentPage = 'knowledge'">
+                    <span class="icon">📚</span><span class="label">知识库管理</span>
+                </div>
+                <div class="menu-item" :class="{ active: currentPage === 'chat' }" @click="currentPage = 'chat'">
+                    <span class="icon">💬</span><span class="label">智能对话</span>
+                </div>
+                <div class="menu-item" :class="{ active: currentPage === 'config' }" @click="currentPage = 'config'">
+                    <span class="icon">⚙️</span><span class="label">系统配置</span>
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="menu-item" @click="sidebarCollapsed = !sidebarCollapsed">
+                    <span class="icon">{{ sidebarCollapsed ? '→' : '←' }}</span>
+                    <span class="label">{{ sidebarCollapsed ? '展开侧栏' : '收起侧栏' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="main-content">
+            <div class="main-header">
+                <h3><span class="dot"></span>{{ pageTitle }}</h3>
+            </div>
+
+            <!-- ==================== 知识库管理 ==================== -->
+            <div class="main-body" v-if="currentPage === 'knowledge'">
+                <div class="page-title-row">
+                    <div class="page-title">知识库管理</div>
+                    <t-button theme="primary" @click="showCreateDialog = true">
+                        <span style="margin-right:4px">＋</span> 新建知识库
+                    </t-button>
+                </div>
+
+                <div class="kb-grid" v-if="knowledgeBases.length > 0">
+                    <div class="kb-card" v-for="kb in knowledgeBases" :key="kb.id" @click="openKnowledgeBase(kb)">
+                        <div class="name">
+                            <span class="kb-icon">📁</span>
+                            {{ kb.name }}
+                        </div>
+                        <div class="desc">{{ kb.description || '暂无描述' }}</div>
+                        <div class="stats">
+                            <span>📄 {{ kb.itemCount || 0 }} 文件</span>
+                            <span>🧩 {{ kb.chunkCount || 0 }} 分块</span>
+                        </div>
+                        <div class="card-actions">
+                            <t-button size="small" variant="text" theme="primary" @click.stop="openImportDialog(kb)">📥 导入</t-button>
+                            <t-button size="small" variant="text" theme="warning" @click.stop="rebuildVectors(kb.id)">🔄 重建向量</t-button>
+                            <t-button size="small" variant="text" theme="danger" @click.stop="deleteKnowledgeBase(kb.id)">🗑 删除</t-button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="empty-state" v-else>
+                    <div class="empty-icon">📚</div>
+                    <p>还没有知识库，点击上方按钮创建</p>
+                </div>
+
+                <!-- 知识条目详情 -->
+                <div v-if="selectedKb" class="detail-panel">
+                    <div class="detail-header">
+                        <h4>{{ selectedKb.name }} — 知识条目</h4>
+                        <t-button size="small" variant="outline" @click="selectedKb = null">关闭</t-button>
+                    </div>
+                    <t-table :data="currentItems" :columns="itemColumns" size="small" v-if="currentItems.length > 0"></t-table>
+                    <div class="empty-state" v-else style="padding: 30px;">暂无知识条目，请导入文件</div>
+                </div>
+            </div>
+
+            <!-- ==================== 对话页面 ==================== -->
+            <div v-if="currentPage === 'chat'" style="padding:0;">
+                <div class="chat-layout">
+                    <!-- 消息区域 -->
+                    <div class="chat-messages" ref="chatMessagesRef">
+                        <div v-if="chatMessages.length === 0" class="empty-chat">
+                            <div class="empty-chat-icon">💬</div>
+                            <h3>开始与知识库对话</h3>
+                            <p>选择一个知识库后提问，或直接与 AI 对话获取回答</p>
+                            <div class="quick-actions">
+                                <span class="quick-action" @click="quickAsk('介绍一下你的能力')">💡 介绍一下你的能力</span>
+                                <span class="quick-action" @click="quickAsk('帮我总结一下知识库内容')">📋 总结知识库内容</span>
+                                <span class="quick-action" @click="quickAsk('有哪些关键知识点？')">🔍 关键知识点</span>
+                            </div>
+                        </div>
+                        <div v-for="(msg, idx) in chatMessages" :key="idx" class="chat-msg" :class="msg.role">
+                            <div class="chat-avatar">{{ msg.role === 'user' ? '🧑' : '🤖' }}</div>
+                            <div class="chat-bubble">
+                                <div v-html="formatMessage(msg.content)"></div>
+                                <div v-if="msg.role === 'assistant' && msg.source" class="source-tag">
+                                    <span class="source-badge" :class="msg.source === 'KNOWLEDGE' ? 'knowledge' : 'ai'">
+                                        {{ msg.source === 'KNOWLEDGE' ? '📚 知识库' : '🤖 AI 生成' }}
+                                    </span>
+                                </div>
+                                <div v-if="msg.references && msg.references.length > 0" class="references">
+                                    <div class="ref-item" v-for="(ref, ri) in msg.references" :key="ri">
+                                        📎 {{ ref.content ? ref.content.substring(0, 80) + '...' : ref }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="chatLoading" class="chat-msg assistant">
+                            <div class="chat-avatar">🤖</div>
+                            <div class="chat-bubble" style="color: var(--text-muted);">
+                                <div class="thinking-dots">
+                                    <span></span><span></span><span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 输入区域 -->
+                    <div class="chat-input-area">
+                        <div class="chat-input-row">
+                            <div class="chat-select-wrap">
+                                <t-select v-model="chatBaseId" placeholder="选择知识库" clearable style="width: 170px;" size="medium">
+                                    <t-option v-for="kb in knowledgeBases" :key="kb.id" :value="String(kb.id)" :label="kb.name"></t-option>
+                                </t-select>
+                            </div>
+                            <div class="chat-textarea-wrap">
+                                <textarea v-model="chatInput"
+                                    placeholder="输入消息… (Enter 发送, Shift+Enter 换行)"
+                                    rows="1"
+                                    @keydown.enter.exact.prevent="sendMessage"
+                                    @input="autoResize"
+                                    ref="chatTextareaRef"
+                                ></textarea>
+                            </div>
+                            <button class="send-btn" @click="sendMessage" :disabled="!chatInput.trim() || chatLoading" title="发送">
+                                ➤
+                            </button>
+                        </div>
+                        <div class="chat-hint">Enter 发送 · Shift+Enter 换行 · 选择知识库后可检索知识</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== 配置页面 ==================== -->
+            <div class="main-body" v-if="currentPage === 'config'">
+                <div class="page-title-row">
+                    <div class="page-title">系统配置</div>
+                    <t-button theme="primary" @click="saveConfig" :loading="configSaving">💾 保存配置</t-button>
+                </div>
+                <div class="config-grid">
+                    <!-- 模型配置 -->
+                    <div class="config-card">
+                        <div class="config-card-title">
+                            <span class="cfg-icon" style="background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(6,182,212,0.2))">🤖</span>
+                            模型配置
+                        </div>
+                        <div class="form-item">
+                            <label>LLM 提供商</label>
+                            <t-select v-model="configForm.llmProvider">
+                                <t-option value="openai" label="OpenAI"></t-option>
+                                <t-option value="zhipu" label="智谱AI"></t-option>
+                                <t-option value="qwen" label="通义千问"></t-option>
+                                <t-option value="deepseek" label="DeepSeek"></t-option>
+                                <t-option value="ollama" label="Ollama (本地)"></t-option>
+                            </t-select>
+                        </div>
+                        <div class="form-item">
+                            <label>Embedding 提供商</label>
+                            <t-select v-model="configForm.embeddingProvider">
+                                <t-option value="openai" label="OpenAI"></t-option>
+                                <t-option value="zhipu" label="智谱AI"></t-option>
+                                <t-option value="qwen" label="通义千问"></t-option>
+                                <t-option value="deepseek" label="DeepSeek"></t-option>
+                                <t-option value="ollama" label="Ollama (本地)"></t-option>
+                            </t-select>
+                        </div>
+                    </div>
+
+                    <!-- 检索配置 -->
+                    <div class="config-card">
+                        <div class="config-card-title">
+                            <span class="cfg-icon" style="background:linear-gradient(135deg,rgba(139,92,246,0.2),rgba(236,72,153,0.2))">🔍</span>
+                            检索配置
+                        </div>
+                        <div class="form-item">
+                            <label>Fallback 阈值 ({{ configForm.fallbackThreshold }})</label>
+                            <t-slider v-model="configForm.fallbackThreshold" :min="0" :max="1" :step="0.05"></t-slider>
+                            <div class="hint">低于此置信度时将转由大模型回答</div>
+                        </div>
+                        <div class="form-item">
+                            <label>检索返回 Top-K</label>
+                            <t-input-number v-model="configForm.topK" :min="1" :max="20"></t-input-number>
+                        </div>
+                        <div class="form-item">
+                            <label>关键词权重 ({{ configForm.keywordWeight }})</label>
+                            <t-slider v-model="configForm.keywordWeight" :min="0" :max="1" :step="0.05"></t-slider>
+                            <div class="hint">语义权重 = {{ (1 - configForm.keywordWeight).toFixed(2) }}</div>
+                        </div>
+                    </div>
+
+                    <!-- 分块配置 -->
+                    <div class="config-card">
+                        <div class="config-card-title">
+                            <span class="cfg-icon" style="background:linear-gradient(135deg,rgba(34,197,94,0.2),rgba(6,182,212,0.2))">✂️</span>
+                            分块配置
+                        </div>
+                        <div class="form-item">
+                            <label>分块大小（字符数）</label>
+                            <t-input-number v-model="configForm.chunkSize" :min="100" :max="2000" :step="50"></t-input-number>
+                        </div>
+                        <div class="form-item">
+                            <label>分块重叠（字符数）</label>
+                            <t-input-number v-model="configForm.chunkOverlap" :min="0" :max="500" :step="10"></t-input-number>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建知识库对话框 -->
+    <t-dialog v-model:visible="showCreateDialog" header="新建知识库" :on-confirm="createKnowledgeBase" :confirm-btn="{ loading: createLoading }">
+        <t-form>
+            <t-form-item label="知识库名称">
+                <t-input v-model="createForm.name" placeholder="请输入知识库名称"></t-input>
+            </t-form-item>
+            <t-form-item label="描述">
+                <t-textarea v-model="createForm.description" placeholder="请输入知识库描述（可选）" :maxlength="500"></t-textarea>
+            </t-form-item>
+        </t-form>
+    </t-dialog>
+
+    <!-- 导入文件对话框 -->
+    <t-dialog v-model:visible="showImportDialog" header="导入知识文件" :footer="false" width="520px">
+        <div>
+            <div class="upload-area" @click="$refs.fileInput.click()" v-if="!importFile">
+                <div class="upload-icon">📤</div>
+                <div class="text">点击选择文件或拖拽到此处</div>
+                <div class="hint">支持 TXT、MD、PDF、Word、JSON 格式</div>
+            </div>
+            <div v-else class="file-selected">
+                <span>📎 {{ importFile.name }}</span>
+                <t-button size="small" variant="text" theme="danger" @click="importFile = null">移除</t-button>
+            </div>
+            <input type="file" ref="fileInput" style="display: none" @change="onFileSelect" accept=".txt,.md,.pdf,.docx,.doc,.json" />
+
+            <div v-if="importTaskId" class="import-progress">
+                <div class="progress-info">
+                    <span class="stage">{{ importProgress.currentStage || '处理中...' }}</span>
+                    <span class="pct">{{ importProgress.progress || 0 }}%</span>
+                </div>
+                <t-progress :percentage="importProgress.progress || 0" :theme="importProgress.status === 'FAILED' ? 'warning' : 'primary'"></t-progress>
+                <div v-if="importProgress.status === 'COMPLETED'" style="margin-top: 8px; color: var(--accent-green); font-size: 13px;">✅ 导入完成！共 {{ importProgress.totalChunks }} 个分块</div>
+                <div v-if="importProgress.status === 'FAILED'" style="margin-top: 8px; color: var(--accent-red); font-size: 13px;">❌ 导入失败: {{ importProgress.errorMessage }}</div>
+            </div>
+
+            <div style="margin-top: 16px; text-align: right;">
+                <t-button theme="primary" @click="startImport" :loading="importLoading" :disabled="!importFile || importProgress.status === 'COMPLETED'">
+                    开始导入
+                </t-button>
+            </div>
+        </div>
+    </t-dialog>
+</div>
+
+<script>
+const { createApp, ref, reactive, computed, onMounted, nextTick, watch } = Vue;
+
+const app = createApp({
+    setup() {
+        // ===== 通用状态 =====
+        const sidebarCollapsed = ref(false);
+        const currentPage = ref('knowledge');
+        const pageTitle = computed(() => {
+            const map = { knowledge: '知识库管理', chat: '智能对话', config: '系统配置' };
+            return map[currentPage.value] || '';
+        });
+
+        const API = (window.location.protocol === 'http:' || window.location.protocol === 'https:')
+            ? '/api'
+            : 'http://localhost:8080/api';
+
+        async function request(url, options = {}) {
+            const resp = await fetch(API + url, {
+                headers: { 'Content-Type': 'application/json', ...options.headers },
+                ...options,
+            });
+            const data = await resp.json();
+            if (data.code !== 200) throw new Error(data.message || '请求失败');
+            return data.data;
+        }
+
+        // ===== 知识库管理 =====
+        const knowledgeBases = ref([]);
+        const selectedKb = ref(null);
+        const currentItems = ref([]);
+        const showCreateDialog = ref(false);
+        const createLoading = ref(false);
+        const createForm = reactive({ name: '', description: '' });
+
+        const itemColumns = [
+            { colKey: 'id', title: 'ID', width: 60 },
+            { colKey: 'fileName', title: '文件名' },
+            { colKey: 'fileFormat', title: '格式', width: 80 },
+            { colKey: 'chunkCount', title: '分块数', width: 80 },
+            { colKey: 'status', title: '状态', width: 80 },
+            { colKey: 'createTime', title: '创建时间', width: 160 },
+        ];
+
+        async function loadKnowledgeBases() {
+            try { knowledgeBases.value = await request('/knowledge-base'); }
+            catch (e) { console.error(e); }
+        }
+
+        async function createKnowledgeBase() {
+            if (!createForm.name.trim()) { TDesign.MessagePlugin.warning('请输入知识库名称'); return; }
+            createLoading.value = true;
+            try {
+                await request('/knowledge-base', { method: 'POST', body: JSON.stringify(createForm) });
+                TDesign.MessagePlugin.success('创建成功');
+                showCreateDialog.value = false;
+                createForm.name = ''; createForm.description = '';
+                await loadKnowledgeBases();
+            } catch (e) { TDesign.MessagePlugin.error(e.message); }
+            finally { createLoading.value = false; }
+        }
+
+        async function openKnowledgeBase(kb) {
+            selectedKb.value = kb;
+            try { currentItems.value = await request(`/knowledge-base/${kb.id}/items`); }
+            catch (e) { console.error(e); }
+        }
+
+        async function deleteKnowledgeBase(id) {
+            const dialog = TDesign.DialogPlugin.confirm({
+                header: '确认删除',
+                body: '删除后不可恢复，确定要删除该知识库吗？',
+                onConfirm: async () => {
+                    try {
+                        await request(`/knowledge-base/${id}`, { method: 'DELETE' });
+                        TDesign.MessagePlugin.success('删除成功');
+                        await loadKnowledgeBases();
+                        if (selectedKb.value && selectedKb.value.id === id) selectedKb.value = null;
+                    } catch (e) { TDesign.MessagePlugin.error(e.message); }
+                    dialog.destroy();
+                },
+            });
+        }
+
+        async function rebuildVectors(id) {
+            try {
+                await request(`/knowledge-base/${id}/rebuild-vectors`, { method: 'POST' });
+                TDesign.MessagePlugin.success('向量重建任务已启动');
+            } catch (e) { TDesign.MessagePlugin.error(e.message); }
+        }
+
+        // ===== 导入 =====
+        const showImportDialog = ref(false);
+        const importKb = ref(null);
+        const importFile = ref(null);
+        const importTaskId = ref(null);
+        const importProgress = reactive({ status: '', progress: 0, currentStage: '', totalChunks: 0, processedChunks: 0, errorMessage: '' });
+        const importLoading = ref(false);
+        let progressTimer = null;
+
+        function openImportDialog(kb) {
+            importKb.value = kb;
+            importFile.value = null;
+            importTaskId.value = null;
+            Object.assign(importProgress, { status: '', progress: 0, currentStage: '', totalChunks: 0, processedChunks: 0, errorMessage: '' });
+            showImportDialog.value = true;
+        }
+
+        function onFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) importFile.value = file;
+        }
+
+        async function startImport() {
+            if (!importFile.value || !importKb.value) return;
+            importLoading.value = true;
+            const formData = new FormData();
+            formData.append('file', importFile.value);
+            formData.append('baseId', importKb.value.id);
+            try {
+                const resp = await fetch(API + '/knowledge-import/upload', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (data.code !== 200) throw new Error(data.message);
+                importTaskId.value = data.data;
+                startProgressPolling();
+            } catch (e) { TDesign.MessagePlugin.error(e.message); }
+            finally { importLoading.value = false; }
+        }
+
+        function startProgressPolling() {
+            if (progressTimer) clearInterval(progressTimer);
+            progressTimer = setInterval(async () => {
+                if (!importTaskId.value) return;
+                try {
+                    const p = await request(`/knowledge-import/progress/${importTaskId.value}`);
+                    Object.assign(importProgress, p);
+                    if (p.status === 'COMPLETED' || p.status === 'FAILED') {
+                        clearInterval(progressTimer); progressTimer = null;
+                        await loadKnowledgeBases();
+                    }
+                } catch (e) { console.error(e); }
+            }, 1000);
+        }
+
+        // ===== 对话 =====
+        const chatMessages = ref([]);
+        const chatInput = ref('');
+        const chatBaseId = ref(undefined);
+        const chatSessionId = ref(null);
+        const chatLoading = ref(false);
+        const chatMessagesRef = ref(null);
+        const chatTextareaRef = ref(null);
+
+        function quickAsk(text) {
+            chatInput.value = text;
+            sendMessage();
+        }
+
+        function autoResize(e) {
+            const el = e ? e.target : chatTextareaRef.value;
+            if (!el) return;
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+        }
+
+        async function sendMessage() {
+            const msg = chatInput.value.trim();
+            if (!msg || chatLoading.value) return;
+
+            chatMessages.value.push({ role: 'user', content: msg });
+            chatInput.value = '';
+            if (chatTextareaRef.value) {
+                chatTextareaRef.value.style.height = 'auto';
+            }
+            chatLoading.value = true;
+            await nextTick();
+            scrollToBottom();
+
+            try {
+                const body = { message: msg, baseId: chatBaseId.value || undefined };
+                if (chatSessionId.value) body.sessionId = chatSessionId.value;
+
+                const resp = await request('/chat', { method: 'POST', body: JSON.stringify(body) });
+                chatSessionId.value = resp.sessionId;
+                chatMessages.value.push({
+                    role: 'assistant',
+                    content: resp.content,
+                    source: resp.source,
+                    references: resp.references,
+                });
+            } catch (e) {
+                chatMessages.value.push({ role: 'assistant', content: '❌ 请求失败: ' + e.message, source: 'ERROR' });
+            } finally {
+                chatLoading.value = false;
+                await nextTick();
+                scrollToBottom();
+            }
+        }
+
+        function scrollToBottom() {
+            nextTick(() => {
+                const el = chatMessagesRef.value;
+                if (el) el.scrollTop = el.scrollHeight;
+            });
+        }
+
+        function formatMessage(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#x27;')
+                .replace(/\n/g, '<br>');
+        }
+
+        // ===== 配置 =====
+        const configForm = reactive({
+            llmProvider: 'openai',
+            embeddingProvider: 'openai',
+            fallbackThreshold: 0.6,
+            chunkSize: 500,
+            chunkOverlap: 50,
+            topK: 5,
+            keywordWeight: 0.3,
+        });
+        const configSaving = ref(false);
+
+        async function loadConfig() {
+            try {
+                const cfg = await request('/config');
+                if (cfg['llm.provider']) configForm.llmProvider = cfg['llm.provider'];
+                else if (cfg.llm_provider) configForm.llmProvider = cfg.llm_provider;
+                if (cfg['embedding.provider']) configForm.embeddingProvider = cfg['embedding.provider'];
+                else if (cfg.embedding_provider) configForm.embeddingProvider = cfg.embedding_provider;
+                if (cfg['retrieval.fallback_threshold']) configForm.fallbackThreshold = parseFloat(cfg['retrieval.fallback_threshold']);
+                else if (cfg.fallback_threshold) configForm.fallbackThreshold = parseFloat(cfg.fallback_threshold);
+                if (cfg['chunk.size']) configForm.chunkSize = parseInt(cfg['chunk.size']);
+                else if (cfg.chunk_size) configForm.chunkSize = parseInt(cfg.chunk_size);
+                if (cfg['chunk.overlap']) configForm.chunkOverlap = parseInt(cfg['chunk.overlap']);
+                else if (cfg.chunk_overlap) configForm.chunkOverlap = parseInt(cfg.chunk_overlap);
+                if (cfg['retrieval.top_k']) configForm.topK = parseInt(cfg['retrieval.top_k']);
+                else if (cfg.top_k) configForm.topK = parseInt(cfg.top_k);
+                if (cfg['retrieval.keyword_weight']) configForm.keywordWeight = parseFloat(cfg['retrieval.keyword_weight']);
+                else if (cfg.keyword_weight) configForm.keywordWeight = parseFloat(cfg.keyword_weight);
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveConfig() {
+            configSaving.value = true;
+            try {
+                await request('/config', { method: 'PUT', body: JSON.stringify(configForm) });
+                TDesign.MessagePlugin.success('配置已保存');
+            } catch (e) { TDesign.MessagePlugin.error(e.message); }
+            finally { configSaving.value = false; }
+        }
+
+        // ===== 初始化 =====
+        onMounted(() => {
+            loadKnowledgeBases();
+            loadConfig();
+        });
+
+        watch(currentPage, (page) => {
+            if (page === 'knowledge') loadKnowledgeBases();
+            if (page === 'config') loadConfig();
+        });
+
+        return {
+            sidebarCollapsed, currentPage, pageTitle,
+            knowledgeBases, selectedKb, currentItems, itemColumns,
+            showCreateDialog, createLoading, createForm,
+            createKnowledgeBase, openKnowledgeBase, deleteKnowledgeBase, rebuildVectors,
+            showImportDialog, importKb, importFile, importTaskId, importProgress, importLoading,
+            openImportDialog, onFileSelect, startImport,
+            chatMessages, chatInput, chatBaseId, chatLoading, chatMessagesRef, chatTextareaRef,
+            sendMessage, formatMessage, quickAsk, autoResize,
+            configForm, configSaving, saveConfig,
+        };
+    },
+});
+
+app.use(TDesign);
+app.mount('#app');
+</script>
+</body>
+</html>
