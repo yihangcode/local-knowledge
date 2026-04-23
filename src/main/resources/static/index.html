@@ -382,16 +382,18 @@
 
         /* ===== 知识条目详情 ===== */
         .detail-panel {
-            background: var(--bg-card); border: 1px solid var(--border-glass);
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid var(--border-glass);
             border-radius: var(--radius-md); padding: 20px; margin-top: 20px;
             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            color: #ffffff;
         }
         .detail-header {
             display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 16px;
         }
         .detail-header h4 {
-            font-size: 16px; font-weight: 600; color: var(--text-primary);
+            font-size: 16px; font-weight: 600; color: #ffffff;
         }
 
         /* ===== 导入进度 ===== */
@@ -410,9 +412,14 @@
             text-align: center; cursor: pointer; transition: all 0.3s;
             background: rgba(148, 163, 184, 0.02);
         }
-        .upload-area:hover {
+        .upload-area:hover, .upload-area--dragover {
             border-color: rgba(59, 130, 246, 0.4);
             background: rgba(59, 130, 246, 0.03);
+        }
+        .upload-area--dragover {
+            border-color: rgba(59, 130, 246, 0.7);
+            background: rgba(59, 130, 246, 0.08);
+            transform: scale(1.01);
         }
         .upload-area .upload-icon {
             font-size: 40px; margin-bottom: 12px;
@@ -503,6 +510,26 @@
         .t-dialog__header { color: var(--text-primary) !important; border-bottom: 1px solid var(--border-glass) !important; }
         .t-dialog__footer { border-top: 1px solid var(--border-glass) !important; }
         .t-form__label { color: var(--text-secondary) !important; }
+        /* Dialog 关闭按钮 */
+        .t-dialog__close,
+        .t-dialog__close-icon {
+            color: #94A3B8 !important;
+        }
+        .t-dialog__close:hover,
+        .t-dialog__close-icon:hover {
+            color: #ffffff !important;
+            background: rgba(148, 163, 184, 0.1) !important;
+        }
+        .t-dialog__close svg,
+        .t-dialog__close-icon svg {
+            fill: #94A3B8 !important;
+            color: #94A3B8 !important;
+        }
+        .t-dialog__close:hover svg,
+        .t-dialog__close-icon:hover svg {
+            fill: #ffffff !important;
+            color: #ffffff !important;
+        }
 
         /* TDesign 通用文字颜色兜底 */
         .t-dialog .t-input__inner,
@@ -511,22 +538,99 @@
             color: #ffffff !important;
             -webkit-text-fill-color: #ffffff !important;
         }
+        /* Dialog 内表格文字颜色 */
+        .t-dialog .t-table td,
+        .t-dialog .t-table td span,
+        .t-dialog .t-table td div,
+        .t-dialog .t-table .t-table__cell {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+        .t-dialog .t-table th,
+        .t-dialog .t-table th span {
+            color: var(--text-secondary) !important;
+        }
 
-        .t-table { background: transparent !important; }
-        .t-table th { background: rgba(148, 163, 184, 0.05) !important; color: var(--text-secondary) !important; border-color: var(--border-glass) !important; }
-        .t-table td { color: var(--text-primary) !important; border-color: var(--border-glass) !important; }
-        .t-table tr:hover td { background: rgba(59, 130, 246, 0.05) !important; }
-
+        /* ===== TDesign Table 暗色主题（暴力覆盖）===== */
+        .t-table,
+        .t-table *,
+        .t-table *::before,
+        .t-table *::after {
+            color: #ffffff !important;
+            background: transparent !important;
+            border-color: rgba(148, 163, 184, 0.12) !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+        /* 表头 */
+        .t-table th,
+        .t-table .t-table__header th,
+        .t-table .t-table__header tr {
+            background: rgba(30, 41, 59, 0.9) !important;
+            color: #94A3B8 !important;
+            -webkit-text-fill-color: #94A3B8 !important;
+            font-weight: 600 !important;
+        }
+        /* 表体行 */
+        .t-table td,
+        .t-table .t-table__body td {
+            background: transparent !important;
+            color: #F1F5F9 !important;
+            -webkit-text-fill-color: #F1F5F9 !important;
+        }
+        /* hover 行 */
+        .t-table .t-table__body tr:hover td,
+        .t-table tbody tr:hover td {
+            background: rgba(59, 130, 246, 0.1) !important;
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+        }
+        /* 空数据提示 */
+        .t-table .t-table__empty-row td {
+            color: #64748B !important;
+            -webkit-text-fill-color: #64748B !important;
+        }
+        /* detail-panel 内表格背景 */
+        .detail-panel .t-table,
+        .detail-panel .t-table .t-table__body-wrapper,
+        .detail-panel .t-table .t-table__content-inner {
+            background: rgba(15, 23, 42, 0.8) !important;
+        }
         .t-slider__bar { background: rgba(148, 163, 184, 0.1) !important; }
         .t-slider__active-bar { background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)) !important; }
+        /* Slider 滑块按钮 */
+        .t-slider__button {
+            border-color: #3B82F6 !important;
+            background: #1E293B !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+        }
+        .t-slider__button:hover {
+            border-color: #60A5FA !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
+        }
 
         .t-progress__bar { background: rgba(148, 163, 184, 0.1) !important; }
         .t-progress__inner-bar { background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)) !important; }
 
         .t-input-number .t-input { background: var(--bg-input) !important; border-color: var(--border-glass) !important; }
         .t-input-number .t-input__inner { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
-        .t-input-number .t-button { background: rgba(148, 163, 184, 0.05) !important; border-color: var(--border-glass) !important; color: var(--text-secondary) !important; }
-        .t-input-number .t-button:hover { color: var(--text-primary) !important; }
+        /* InputNumber 加减按钮 */
+        .t-input-number .t-button {
+            background: rgba(148, 163, 184, 0.05) !important;
+            border-color: var(--border-glass) !important;
+            color: #94A3B8 !important;
+        }
+        .t-input-number .t-button svg {
+            fill: #94A3B8 !important;
+            color: #94A3B8 !important;
+        }
+        .t-input-number .t-button:hover {
+            color: #ffffff !important;
+            background: rgba(59, 130, 246, 0.1) !important;
+        }
+        .t-input-number .t-button:hover svg {
+            fill: #ffffff !important;
+            color: #ffffff !important;
+        }
 
         /* 按钮暗色 */
         .t-button.t-is-disabled { opacity: 0.4; }
@@ -777,7 +881,12 @@
     <!-- 导入文件对话框 -->
     <t-dialog v-model:visible="showImportDialog" header="导入知识文件" :footer="false" width="520px">
         <div>
-            <div class="upload-area" @click="$refs.fileInput.click()" v-if="!importFile">
+            <div class="upload-area" @click="$refs.fileInput.click()"
+                 @dragover.prevent="onDragOver"
+                 @dragleave.prevent="onDragLeave"
+                 @drop.prevent="onFileDrop"
+                 :class="{ 'upload-area--dragover': isDragover }"
+                 v-if="!importFile">
                 <div class="upload-icon">📤</div>
                 <div class="text">点击选择文件或拖拽到此处</div>
                 <div class="hint">支持 TXT、MD、PDF、Word、JSON 格式</div>
@@ -918,6 +1027,31 @@ const app = createApp({
         function onFileSelect(e) {
             const file = e.target.files[0];
             if (file) importFile.value = file;
+        }
+
+        // ===== 拖拽上传 =====
+        const isDragover = ref(false);
+
+        function onDragOver() {
+            isDragover.value = true;
+        }
+
+        function onDragLeave() {
+            isDragover.value = false;
+        }
+
+        function onFileDrop(e) {
+            isDragover.value = false;
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const allowedExts = ['.txt', '.md', '.pdf', '.docx', '.doc', '.json'];
+                const ext = '.' + file.name.split('.').pop().toLowerCase();
+                if (allowedExts.includes(ext)) {
+                    importFile.value = file;
+                } else {
+                    MessagePlugin.warning('不支持的文件格式，请上传 TXT/MD/PDF/Word/JSON 文件');
+                }
+            }
         }
 
         async function startImport() {
@@ -1069,6 +1203,9 @@ const app = createApp({
         onMounted(() => {
             loadKnowledgeBases();
             loadConfig();
+            // 全局阻止浏览器默认拖拽打开文件行为
+            document.addEventListener('dragover', e => e.preventDefault());
+            document.addEventListener('drop', e => e.preventDefault());
         });
 
         watch(currentPage, (page) => {
@@ -1082,7 +1219,7 @@ const app = createApp({
             showCreateDialog, createLoading, createForm,
             createKnowledgeBase, openKnowledgeBase, deleteKnowledgeBase, rebuildVectors,
             showImportDialog, importKb, importFile, importTaskId, importProgress, importLoading,
-            openImportDialog, onFileSelect, startImport,
+            openImportDialog, onFileSelect, onFileDrop, isDragover, startImport,
             chatMessages, chatInput, chatBaseId, chatLoading, chatMessagesRef, chatTextareaRef,
             sendMessage, formatMessage, quickAsk, autoResize,
             configForm, configSaving, saveConfig,

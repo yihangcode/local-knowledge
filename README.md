@@ -1,4 +1,4 @@
-# 本地知识库系统（Local Knowledge Base）
+# 本地知识库系统（Local Knowledge）
 
 > 基于 RAG（检索增强生成）架构的智能知识库系统，支持多格式文档导入、混合检索、多 LLM Provider 配置切换
 
@@ -42,6 +42,7 @@
 - ⚡ **异步导入**：文件上传后异步处理，前端轮询进度
 - 💬 **SSE 流式**：对话支持 Server-Sent Events 实时流式输出
 - 🎯 **Fallback 机制**：知识库置信度低于阈值时自动转交 LLM
+- 🔐 **敏感配置隔离**：所有密码/API Key 通过 `.env` 文件管理，不进入版本控制
 
 ---
 
@@ -62,18 +63,19 @@
 │       │            │                                    │
 │  ┌────▼────────────▼──────────────────────────────┐    │
 │  │          Spring AI 1.0.0-M4                     │    │
-│  │  ChatModel (OpenAI/ZhiPuAI/Ollama)              │    │
+│  │  ChatModel (OpenAI/ZhiPuAI/DeepSeek/Ollama)     │    │
 │  │  EmbeddingModel (OpenAI/ZhiPuAI/Ollama)         │    │
 │  │  LlmProviderConfig (@Primary 动态选择)           │    │
 │  └─────────────────────────────────────────────────┘    │
 │  ┌──────────┐ ┌──────────┐ ┌──────────────────────┐    │
 │  │ MyBatis+ │ │ MongoRepo │ │ MongoVectorStore     │    │
-│  │  MySQL   │ │  MongoDB  │ │ (余弦相似度计算)      │    │
+│  │  MySQL   │ │  MongoDB  │ │ (余弦相似度计算)       │    │
 │  └──────────┘ └──────────┘ └──────────────────────┘    │
-│  ┌──────────┐                                         │
-│  │  Redis   │  对话历史缓存                             │
-│  └──────────┘                                         │
-└───────────────────────────────────────────────────────┘
+│  ┌──────────┐ ┌───────────────────────────────────┐      │
+│  │  Redis   │ │ InfrastructureHealthConfig         │      │
+│  │ 缓存     │ │ (启动健康检查, 连接失败自动终止)     │      │
+│  └──────────┘ └─────────────────────────────────┘      │
+└───────────────────────────────────────────────────────────────┘
 ```
 
 ### 技术栈总览
@@ -81,14 +83,15 @@
 | 分类 | 技术 | 版本 | 用途 |
 |------|------|------|------|
 | 框架 | Spring Boot | 3.3.5 | 应用框架 |
-| AI | Spring AI | 1.0.0-M4 | LLM / Embedding 抽象层 |
+| AI | Spring AI | 1.0.2-M4 | LLM / Embedding 抽象层 |
 | ORM | MyBatis-Plus | 3.5.7 | MySQL 数据访问 |
 | 关系库 | MySQL | 8.x | 知识库元数据、任务、配置 |
 | 文档库 | MongoDB | 7.x | 向量存储、对话消息 |
 | 缓存 | Redis | 7.x | 对话历史缓存 |
-| 工具 | Hutool | 5.8.27 | JSON 解析等工具 |
-| PDF | Apache PDFBox | 3.0.3 | PDF 文档解析 |
-| Word | Apache POI | 5.3.0 | Word 文档解析 |
+| 巫具 | Hutool | 5.8.27 | JSON 解析等 |
+| PDF | Apache PDFBox | 3.0.3 | PDF 解析 |
+| Word | Apache POI | 5.3.0 | Word 解析 |
+| 数据源 | dynamic-datasource | 4.3.1 | 动态数据源管理 |
 | 前端 | Vue 3 + TDesign | CDN | 管理界面 |
 | 构建 | Maven | 3.6+ | 项目构建 |
 
@@ -110,7 +113,7 @@
 - **进度查询**：前端轮询获取实时进度（解析 → 分块 → 向量化 → 完成）
 - **导入记录**：每次导入均有详细记录
 
-### 3. 智能检索
+### 3. 晓能检索
 
 - **关键词检索**：基于 TF 匹配度的文本搜索
 - **语义检索**：基于 Embedding 向量的余弦相似度搜索
@@ -119,8 +122,8 @@
 
 ### 4. 智能对话
 
-- **知识库回答**：检索命中时，基于上下文 + LLM 生成回答
-- **LLM Fallback**：知识库未命中时，转交 LLM 直接回答并标注来源
+- **知识库回答**：检索命中时基于上下文 + LLM 生成回答
+- **LLM Fallback**：知识库未命中时转交 LLM 直接回答并标注来源
 - **强制 LLM**：可跳过知识库检索直接使用 LLM
 - **SSE 流式**：支持 Server-Sent Events 实时流式输出
 - **会话管理**：自动维护 session，支持历史查询与删除
@@ -128,14 +131,14 @@
 
 ### 5. 多 LLM Provider
 
-| Provider | ChatModel Bean | EmbeddingModel Bean | 备注 |
-|----------|---------------|---------------------|------|
+| Provider | ChatModel Bean | Embedding Bean | 备注 |
+|----------|---------------|--------------|------|
 | OpenAI | `openAiChatModel` | `openAiEmbeddingModel` | 原生支持 |
 | DeepSeek | `openAiChatModel` | `openAiEmbeddingModel` | 兼容 OpenAI API |
 | 智谱 GLM | `zhiPuAiChatModel` | `zhiPuAiEmbeddingModel` | 原生支持 |
 | Ollama | `ollamaChatModel` | `ollamaEmbeddingModel` | 本地部署 |
 
-> 切换 Provider 只需修改 `application.yml` 中 `knowledge.llm.provider` 和 `knowledge.embedding.provider`，由 `LlmProviderConfig` 通过 `@Primary` 动态选择，**无需改动任何代码**。
+> 切换 Provider 只需修改 `application.yml` 中 `knowledge.llm.provider` 和 `knowledge.embedding.provider`，由 `LlmProviderConfig` 通过 `@Primary` 动态选择，**无需改动代码**。
 
 ### 6. 系统配置
 
@@ -158,32 +161,65 @@
 
 ## 快速开始
 
-### 1. 初始化数据库
+### 1. 克隆项目
+
+```bash
+git clone <repository-url>
+cd local-knowledge
+```
+
+### 2. 初始化数据库
 
 ```bash
 # 执行 MySQL 初始化脚本
 mysql -u root -p < sql/init.sql
 ```
 
-### 2. 修改配置
+### 3. 配置敏感信息
 
-编辑 `src/main/resources/application-dev.yml`，配置数据库连接和 LLM API Key：
+项目使用 `.env` 文件管理所有敏感配置（数据库密码、API Key 等），**不会提交到 Git**：
 
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/knowledge_base?useUnicode=true&characterEncoding=utf8&useSSL=true&serverTimezone=GMT%2B8
-    username: your_username
-    password: your_password
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/knowledge_base
-    redis:
-      host: localhost
-      port: 6379
+```bash
+# 复制模板文件
+cp .env.example .env
+
+# 编辑 .env，填入实际值
 ```
 
-### 3. 选择 LLM Provider
+`.env` 文件内容示例：
+
+```env
+# MySQL
+MYSQL_URL=jdbc:mysql://localhost:3306/knowledge_base?useUnicode=true&characterEncoding=utf8&serverTimezone=GMT%2B8
+MYSQL_USERNAME=root
+MYSQL_PASSWORD=your_mysql_password
+
+# MongoDB
+MONGODB_URI=mongodb://username:password@localhost:27017/knowledge_base
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+
+# LLM API Keys
+OPENAI_API_KEY=sk-your-openai-key
+OPENAI_BASE_URL=https://api.openai.com
+DEEPSEEK_API_KEY=sk-your-deepseek-key
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+ZHIPUAI_API_KEY=your-zhipuai-api-key
+
+# Ollama（本地模型）
+OLLAMA_BASE_URL=http://localhost:11434
+
+# Chat Model（可选覆盖）
+CHAT_MODEL=gpt-3.5-turbo
+EMBEDDING_MODEL=text-embedding-ada-002
+```
+
+> ⚠️ `.env` 文件已被 `.gitignore` 忽略，**不会被提交到版本控制**。`.env.example` 是不含敏感信息的模板文件，可以安全提交。
+
+### 4. 选择 LLM Provider
 
 编辑 `src/main/resources/application.yml`：
 
@@ -195,7 +231,7 @@ knowledge:
     provider: zhipuai    # openai / zhipuai / ollama
 ```
 
-### 4. 构建与运行
+### 5. 构建与运行
 
 ```bash
 # 构建
@@ -208,9 +244,11 @@ java -jar target/local-knowledge-1.0.0.jar
 mvn spring-boot:run
 ```
 
-### 5. 访问系统
+### 6. 访问系统
 
 浏览器打开 `http://localhost:8080`，即可使用 Web 管理界面。
+
+> 💡 应用启动时会自动进行健康检查（`InfrastructureHealthConfig`），如果 MySQL / Redis / MongoDB 任一连接失败，应用将自动终止，避免静默运行。
 
 ---
 
@@ -219,6 +257,8 @@ mvn spring-boot:run
 ```
 local-knowledge/
 ├── pom.xml                                      # Maven 构建配置
+├── .env.example                                 # 敏感配置模板（安全提交）
+├── .env                                         # 敏感配置实际值（已 gitignore）
 ├── sql/
 │   └── init.sql                                 # MySQL 初始化脚本
 ├── docs/                                        # 文档目录
@@ -241,8 +281,9 @@ local-knowledge/
 │   │   │   │   ├── AsyncConfig.java             #   异步线程池
 │   │   │   │   ├── CorsConfig.java              #   跨域配置
 │   │   │   │   ├── GlobalExceptionHandler.java  #   全局异常处理
-│   │   │   │   ├── MongoConfig.java             #   MongoDB 配置
-│   │   │   │   ├── RedisConfig.java             #   Redis 配置
+│   │   │   │   ├── InfrastructureHealthConfig.java#   ★ 启动健康检查
+│   │   │   │   ├── MongoConfig.java             #   MongoDB 配置 + 索引
+│   │   │   │   ├── RedisConfig.java            #   Redis 配置
 │   │   │   │   ├── VectorStoreConfig.java       #   VectorStore 注册
 │   │   │   │   └── WebConfig.java               #   静态资源映射
 │   │   │   ├── controller/                      # REST 控制器
@@ -293,13 +334,14 @@ local-knowledge/
 │   │   │   │       ├── MarkdownParser.java      #   Markdown 解析
 │   │   │   │       ├── PdfParser.java           #   PDF 解析
 │   │   │   │       ├── WordParser.java          #   Word 解析
-│   │   │   │       └── JsonQaParser.java        #   JSON QA 解析
+│   │   │   │       └── JsonQaParser.java       #   JSON QA 解析
 │   │   │   ├── repository/                      # MongoDB Repository
 │   │   │   │   ├── KnowledgeChunkRepository.java
 │   │   │   │   └── ConversationRepository.java
 │   │   │   ├── service/                         # 业务服务
 │   │   │   │   ├── ChatService.java             #   ★ 对话服务（核心）
-│   │   │   │   ├── KnowledgeService.java        #   ★ 知识库服务（核心）
+│   │   │   │   ├── KnowledgeService.java        #   ★ 知识库服务
+│   │   │   │   ├── KnowledgeImportExecutor.java #   ★ 异步导入执行器
 │   │   │   │   ├── RetrievalService.java        #   ★ 混合检索服务
 │   │   │   │   ├── EmbeddingService.java        #   Embedding 服务
 │   │   │   │   ├── ImportTaskService.java       #   导入任务服务
@@ -308,10 +350,10 @@ local-knowledge/
 │   │   │       └── MongoVectorStore.java        #   ★ 自定义向量存储
 │   │   └── resources/
 │   │       ├── application.yml                  # 主配置
-│   │       ├── application-dev.yml              # 开发环境配置
+│   │       ├── application-dev.yml              # 开发环境配置（引用 .env）
 │   │       ├── application-prod.yml             # 生产环境配置
 │   │       └── static/
-│   │           └── index.html                   # 前端单页面
+│   │           └── index.html                   # 前端单页面（Vue3 + TDesign）
 │   └── test/java/com/knowledge/                 # 单元测试
 │       ├── config/LlmProviderConfigTest.java
 │       ├── controller/ControllerTest.java
@@ -372,7 +414,15 @@ knowledge:
     provider: zhipuai     # 改这一行即可切换 Embedding
 ```
 
-### 2. ChatService — 对话核心流程
+### 2. InfrastructureHealthConfig — 启动健康检查
+
+应用启动时自动检测 MySQL / Redis / MongoDB 连接状态，任一组件不可用则 `System.exit(1)` 终止应用，避免在基础设施异常时静默运行导致数据不一致。
+
+### 3. KnowledgeImportExecutor — 异步导入执行器
+
+从 `KnowledgeService` 中提取的独立 Bean，解决 Spring `@Async` 同类调用失效问题。Controller 将上传的 `InputStream` 提前读取为 `byte[]` 传入，避免请求结束后流关闭。
+
+### 4. ChatService — 对话核心流程
 
 ```
 用户消息 → 知识库检索 → 置信度判断
@@ -385,7 +435,7 @@ knowledge:
 - **对话历史管理**：MongoDB 持久化 + Redis 缓存，最多保留 20 轮历史
 - **流式支持**：`chatStream()` 方法返回 `Flux<String>`，通过 `chatModel.stream()` 实时输出
 
-### 3. RetrievalService — 混合检索
+### 5. RetrievalService — 混合检索
 
 ```
 查询文本 ──┬── 关键词检索（TF 匹配度）── keywordScore
@@ -398,13 +448,14 @@ knowledge:
                    按 finalScore 降序，取 Top-K
 ```
 
-### 4. MongoVectorStore — 向量存储
+### 6. MongoVectorStore — 向量存储
 
 - 存储：分块文本 + Embedding 向量 + 元数据（baseId、itemId、chunkIndex、fileName）
 - 检索：`semanticSearchWithEmbedding()` 精确余弦相似度计算
+- 索引：MongoDB 自动创建 baseId/itemId 单字段索引及复合索引
 - 扩展性：实现 Spring AI `VectorStore` 接口，后续可无缝替换为 Milvus / Chroma
 
-### 5. 文档解析 — 策略模式
+### 7. 文档解析 — 策略模式
 
 | 格式 | 解析器 | 分段策略 |
 |------|--------|---------|
@@ -414,7 +465,7 @@ knowledge:
 | Word | `WordParser` | Apache POI 按段落提取 |
 | JSON | `JsonQaParser` | 解析 `[{"question":"...","answer":"..."}]` 格式 |
 
-### 6. 文本分块 — 策略模式
+### 8. 文本分块 — 策略模式
 
 | 类型 | 分块器 | 策略 |
 |------|--------|------|
@@ -508,6 +559,21 @@ knowledge:
 
 ## 配置说明
 
+### 敏感配置管理（.env）
+
+项目使用 `.env` 文件统一管理所有敏感配置，`application-dev.yml` 通过 `${ENV_VAR}` 语法引用：
+
+```
+.env 文件                    application-dev.yml
+─────────────               ──────────────────
+MYSQL_PASSWORD=xxx     →    password: ${MYSQL_PASSWORD}
+MONGODB_URI=mongodb:// →    uri: ${MONGODB_URI}
+ZHIPUAI_API_KEY=xxx    →    api-key: ${ZHIPUAI_API_KEY}
+```
+
+- `.env.example` — 模板文件，不含真实密钥，**可安全提交到 Git**
+- `.env` — 实际配置文件，**已被 `.gitignore` 忽略**，不会被提交
+
 ### application.yml（主配置）
 
 ```yaml
@@ -527,6 +593,17 @@ spring:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
     default-property-inclusion: non_null
+
+# 动态数据源
+spring:
+  datasource:
+    dynamic:
+      strict: true              # 严格模式，未匹配数据源时抛异常
+      datasource:
+        master:
+          url: ${MYSQL_URL}
+          username: ${MYSQL_USERNAME}
+          password: ${MYSQL_PASSWORD}
 
 # MyBatis Plus
 mybatis-plus:
@@ -561,33 +638,18 @@ knowledge:
 
 ### application-dev.yml（开发环境）
 
-包含 MySQL、MongoDB、Redis 连接配置及三个 LLM Provider 的详细配置：
-
-- **OpenAI**：通过环境变量 `OPENAI_API_KEY`、`OPENAI_BASE_URL`、`CHAT_MODEL`、`EMBEDDING_MODEL` 配置
-- **DeepSeek**：复用 OpenAI 配置，修改 `base-url` 为 `https://api.deepseek.com`
-- **智谱 GLM**：直接配置 `api-key`、`model: glm-4`、`embedding: embedding-3`
-- **Ollama**：配置 `base-url`（默认 `http://localhost:11434`）、`model: llama3`
+通过 `${ENV_VAR}` 引用 `.env` 文件中的值，包含：
+- **MySQL**：`${MYSQL_URL}` / `${MYSQL_USERNAME}` / `${MYSQL_PASSWORD}`
+- **MongoDB**：`${MONGODB_URI}`
+- **Redis**：`${REDIS_HOST}` / `${REDIS_PORT}` / `${REDIS_PASSWORD}`
+- **OpenAI**：`${OPENAI_API_KEY}` / `${OPENAI_BASE_URL}`
+- **DeepSeek**：`${DEEPSEEK_API_KEY}` / `${DEEPSEEK_BASE_URL}`
+- **智谱 GLM**：`${ZHIPUAI_API_KEY}`
+- **Ollama**：`${OLLAMA_BASE_URL}`
 
 ### application-prod.yml（生产环境）
 
-所有敏感配置通过环境变量注入：
-
-```yaml
-spring:
-  datasource:
-    username: ${MYSQL_USERNAME}
-    password: ${MYSQL_PASSWORD}
-  data:
-    mongodb:
-      uri: ${MONGODB_URI}
-    redis:
-      password: ${REDIS_PASSWORD}
-  ai:
-    openai:
-      api-key: ${OPENAI_API_KEY}
-    zhipuai:
-      api-key: ${ZHIPU_API_KEY}
-```
+所有敏感配置通过环境变量注入，格式同上。部署时可使用系统环境变量或 Docker/K8s Secret。
 
 ---
 
@@ -603,12 +665,11 @@ spring:
 | 💬 智能对话 | 选择知识库对话、查看来源标签、会话管理 |
 | ⚙️ 系统配置 | 修改 Provider、Fallback 阈值、分块参数、检索参数 |
 
-### 特色交互
+### 设计风格
 
-- 知识库卡片式布局，hover 高亮
-- 文件上传 + 实时进度条
-- 对话界面区分知识库/AI 来源
-- 配置滑块实时预览
+- **深色科技风**：深蓝渐变背景 + 毛玻璃卡片效果
+- **配色**：科技蓝（#3B82F6）为主色调，搭配青蓝渐变
+- **交互**：卡片 hover 高亮、实时进度条、流式对话逐字输出
 
 ---
 
@@ -630,6 +691,12 @@ spring:
 |------|------|---------|
 | `knowledge_chunk` | 知识分块 + 向量 | id, baseId, itemId, content, embedding(float[]), chunkIndex, metadata |
 | `conversation_message` | 对话消息 | id, sessionId, role, content, source, matchedChunkIds |
+
+### MongoDB 索引
+
+- `baseId` 单字段索引
+- `itemId` 单字段索引
+- `{baseId: 1, itemId: 1}` 复合索引
 
 ### Redis Key
 
@@ -674,6 +741,14 @@ mvn test
 ### 开发环境
 
 ```bash
+# 1. 配置 .env
+cp .env.example .env
+# 编辑 .env 填入实际值
+
+# 2. 初始化数据库
+mysql -u root -p < sql/init.sql
+
+# 3. 启动
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
@@ -687,19 +762,35 @@ mvn clean package -DskipTests
 java -jar target/local-knowledge-1.0.0.jar --spring.profiles.active=prod
 ```
 
-### 环境变量（生产环境必须配置）
+### Docker 部署（规划中）
 
-| 变量名 | 说明 | 示例 |
+```dockerfile
+# 示例 Dockerfile
+FROM eclipse-temurin:17-jre
+COPY target/local-knowledge-1.0.0.jar /app/app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "/app/app.jar", "--spring.profiles.active=prod"]
+```
+
+### 环境变量
+
+| 变量名 | 说明 | 必填 |
 |--------|------|------|
-| `MYSQL_USERNAME` | MySQL 用户名 | root |
-| `MYSQL_PASSWORD` | MySQL 密码 | your_password |
-| `MONGODB_URI` | MongoDB 连接串 | mongodb://user:pass@host:27017/db |
-| `REDIS_HOST` | Redis 地址 | localhost |
-| `REDIS_PASSWORD` | Redis 密码 | your_password |
-| `OPENAI_API_KEY` | OpenAI API Key | sk-xxx |
-| `OPENAI_BASE_URL` | OpenAI Base URL | https://api.openai.com |
-| `ZHIPU_API_KEY` | 智谱 API Key | xxx |
-| `OLLAMA_BASE_URL` | Ollama 地址 | http://localhost:11434 |
+| `MYSQL_URL` | MySQL JDBC 连接串 | ✅ |
+| `MYSQL_USERNAME` | MySQL 用户名 | ✅ |
+| `MYSQL_PASSWORD` | MySQL 密码 | ✅ |
+| `MONGODB_URI` | MongoDB 连接串 | ✅ |
+| `REDIS_HOST` | Redis 地址 | ✅ |
+| `REDIS_PORT` | Redis 端口 | ✅ |
+| `REDIS_PASSWORD` | Redis 密码 | ❌ |
+| `OPENAI_API_KEY` | OpenAI API Key | ❌ |
+| `OPENAI_BASE_URL` | OpenAI Base URL | ❌ |
+| `DEEPSEEK_API_KEY` | DeepSeek API Key | ❌ |
+| `DEEPSEEK_BASE_URL` | DeepSeek Base URL | ❌ |
+| `ZHIPUAI_API_KEY` | 智谱 API Key | ✅ (默认 Provider) |
+| `OLLAMA_BASE_URL` | Ollama 地址 | ❌ |
+| `CHAT_MODEL` | Chat 模型名称 | ❌ |
+| `EMBEDDING_MODEL` | Embedding 模型名称 | ❌ |
 
 ---
 
