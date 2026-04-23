@@ -7,22 +7,22 @@ spring:
       strict: true
       datasource:
         master:
-          url: jdbc:mysql://192.168.1.57:3306/knowledge_base?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8
-          username: root
-          password: Mol_Qiprh0_s
+          url: ${MYSQL_URL}
+          username: ${MYSQL_USERNAME:root}
+          password: ${MYSQL_PASSWORD:root}
           driver-class-name: com.mysql.cj.jdbc.Driver
 
   # MongoDB 配置
   data:
     mongodb:
-      uri: mongodb://writer:Fenmi1q2w3e@192.168.1.77:27017/ryxdb
+      uri:  ${MONGODB_URI}
       auto-index-creation: true
 
     # Redis 配置
     redis:
-      host: 192.168.1.77
-      port: 6379
-      password: chefu666
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
       database: 0
       timeout: 30s
       lettuce:
@@ -39,8 +39,8 @@ spring:
   ai:
     openai:
       # OpenAI 原生
-      api-key: ${OPENAI_API_KEY:sk-your-openai-key}
-      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      api-key: ${OPENAI_API_KEY}
+      base-url: ${OPENAI_BASE_URL}
       # DeepSeek（将 knowledge.llm.provider 改为 deepseek，并设置下方环境变量）
       # api-key: ${DEEPSEEK_API_KEY:sk-your-deepseek-key}
       # base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
@@ -55,7 +55,7 @@ spring:
 
     # 智谱 GLM（备用，启用时需在 ChatService/EmbeddingService 改 @Qualifier）
     zhipuai:
-      api-key: ${ZHIPUAI_API_KEY:sk-your-zhipuai-key}
+      api-key: ${ZHIPUAI_API_KEY}
       chat:
         options:
           model: glm-4
